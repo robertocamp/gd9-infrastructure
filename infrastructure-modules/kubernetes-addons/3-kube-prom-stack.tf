@@ -3,6 +3,8 @@ data "aws_eks_cluster" "cluster" {
 }
 
 
+
+
 module "eks_blueprints_addons" {
   source = "aws-ia/eks-blueprints-addons/aws"
   version = "~> 1.0" #ensure to update this to the latest/desired version

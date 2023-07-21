@@ -15,7 +15,19 @@ kubeStateMetrics:
   enabled: false
 
 prometheus:
-  enabled: false
+  enabled: true
+  prometheusSpec:
+    storageSpec: 
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp2
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+        selector: {}
+
+
 
 grafana:
   enabled: false
