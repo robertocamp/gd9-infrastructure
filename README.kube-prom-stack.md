@@ -70,6 +70,8 @@
   + `cd infrastructure-live-v4`
   + `terragrunt run-all apply`
 
+## node exporter
+- in order for Prometheus to work with node-exporter, we must integrate IRSA configuation so that the Prometheus service account can access AWS EC2 API
 ## checkout
 - `k get svc -n monitoring`
   + expected output: `prometheus-operated                ClusterIP   None             <none>        9090/TCP   64m`
