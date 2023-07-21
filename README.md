@@ -1,6 +1,6 @@
 # gd9-infrastructure
 
-# gd8-infrastructure
+
 ## Terraform: vpc infratstructure
 - some 3rd party tooks require DNS support -enable this in the VPC
 - Internet gateway provides Internet access for public subnets
@@ -271,3 +271,8 @@ autoscaler      kube-system     1               2023-07-16 09:10:32.131851 -0500
 ```
 - `k get pods -n kube-system`
 - `k logs autoscaler-aws-cluster-autoscaler-56c6c5f99b-5jscz -n kube-system`
+
+## links
+- anton putra eks: https://github.com/antonputra/tutorials/tree/main/lessons/160
+- https://www.youtube.com/watch?v=yduHaOj3XMg&t=3026s
+- https://github.com/aws-ia/terraform-aws-eks-blueprints-addons/blob/main/docs/addons/kube-prometheus-stack.md
