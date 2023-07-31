@@ -16,6 +16,9 @@ kubeStateMetrics:
 
 prometheus:
   enabled: true
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: "arn:aws:iam::240195868935:role/prometheus"
   prometheusSpec:
     storageSpec: 
       volumeClaimTemplate:

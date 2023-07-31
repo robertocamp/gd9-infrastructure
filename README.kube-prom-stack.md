@@ -9,6 +9,7 @@
 ## helm templates
 - `helm repo list`
 - `helm repo add prometheus-community https://prometheus-community.github.io/helm-charts`
+- `cd infrastructure-modules/kubernetes-addons`
 - `helm template "47.1.0" prometheus-community/kube-prometheus-stack --values values.yml > rendered.yml`
 
 ## stack design
@@ -27,7 +28,7 @@
 - However, this means that if the Prometheus pod restarts or gets rescheduled, all the data stored in the emptyDir volume will be lost
 - To ensure data persistence and avoid data loss in case of pod restarts or rescheduling, it's recommended to configure Prometheus to use Persistent Volume Claims (PVCs) to store its data on a more durable storage solution
 - PVCs allow you to request and use storage volumes that exist beyond the lifecycle of the pod
-- in order to construct the storage design we took some of Anton Putra's code (https://github.com/antonputra/tutorials/tree/main/lessons/154) and crafted the `2-csi-driver-addon.tf` file that handles both PVC creation and IAM for 
+- in order to construct the storage design we took some of Anton Putra's code (https://github.com/antonputra/tutorials/tree/main/lessons/154) and crafted the `kubernetes-addons/2-csi-driver-addon.tf` file that handles both PVC creation and IAM for storage
 
 
 ## IAM, service accounts and IRSA
@@ -47,19 +48,24 @@
 
 ### IRSA
 ### integration
-- In summary, the kube-prometheus-stack-operator service account is associated with the kube-prometheus-stack-operator cluster role through the kube-prometheus-stack-operator cluster role binding
+- In summary, the `kube-prometheus-stack-operator` service account is associated with the `kube-prometheus-stack-operator` cluster role through the `kube-prometheus-stack-operator` cluster role binding
 - This setup allows the kube-prometheus-stack operator to act with the permissions defined in the cluster role (kube-prometheus-stack-operator) when managing and deploying resources within the cluster.
 - The operator needs these permissions to create, update, and delete various resources like CustomResourceDefinitions (CRDs), Deployments, StatefulSets, etc., to set up and maintain the components of the kube-prometheus-stack (Prometheus, Grafana, Alertmanager, etc.) and ensure their proper functioning
 
 ### Prometheus Operator
-- service account: kube-prometheus-stack-operator
-- clusterRole: kube-prometheus-stack-operator
-- clusterRoleBinding: kube-prometheus-stack-operator
+- service account: `kube-prometheus-stack-operator`
+- clusterRole: `kube-prometheus-stack-operator`
+- clusterRoleBinding: `kube-prometheus-stack-operator`
 ### Prometheus
-- service-account: kube-prometheus-stack-prometheus
-- clusterRole: kube-prometheus-stack-prometheus
-- clusterRoleBinding: kube-prometheus-stack-prometheus
-- IRSA: 
+- service-account: `kube-prometheus-stack-prometheus`
+- clusterRole: `kube-prometheus-stack-prometheus`
+- clusterRoleBinding: `kube-prometheus-stack-prometheus`
+- **IRSA:** 
+  + an AWS IAM role named "prometheus" should be created
+  + add the TF code to create the prometheus role into the `3-kube-prom-stack.tf` file
+
+
+
 ## kube stack deployment
 - add blueprints tf file: 2-kube-prom-stack.tf
 - add `values.yml` to the same directory where the `2-kube-prom-stack.tf` is
@@ -73,6 +79,8 @@
 ## node exporter
 - in order for Prometheus to work with node-exporter, we must integrate IRSA configuation so that the Prometheus service account can access AWS EC2 API
 ## checkout
+- `aws eks describe-cluster --name dev-gd9 --region us-east-2 --query 'cluster.createdAt'`
+- `aws iam list-roles | jq -r '.Roles[] | select(.RoleName | test("prometheus"))'`
 - `k get svc -n monitoring`
   + expected output: `prometheus-operated                ClusterIP   None             <none>        9090/TCP   64m`
 - `k port-forward svc/prometheus-operated 9090 -n monitoring`

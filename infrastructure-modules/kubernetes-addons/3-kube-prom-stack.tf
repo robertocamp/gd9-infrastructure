@@ -3,6 +3,34 @@ data "aws_eks_cluster" "cluster" {
 }
 
 
+data "aws_iam_policy_document" "prometheus" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect  = "Allow"
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(data.aws_iam_openid_connect_provider.this.url, "https://", "")}:sub"
+      values   = ["system:serviceaccount:monitoring:prometheus"]
+    }
+
+    principals {
+      identifiers = [data.aws_iam_openid_connect_provider.this.arn]
+      type        = "Federated"
+    }
+  }
+}
+
+resource "aws_iam_role" "prometheus" {
+  assume_role_policy = data.aws_iam_policy_document.prometheus.json
+  name               = "prometheus"
+}
+
+resource "aws_iam_role_policy_attachment" "prometheus" {
+  role       = aws_iam_role.prometheus.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess"
+}
+
 
 
 module "eks_blueprints_addons" {
@@ -21,6 +49,8 @@ module "eks_blueprints_addons" {
     chart_version = "45.10.1"
     repository    = "https://prometheus-community.github.io/helm-charts"
     namespace     = "monitoring"
-    values        = [templatefile("${path.module}/values.yml", {})]
+    values        = [templatefile("${path.module}/values.yml", { role_arn = aws_iam_role.prometheus.arn })]
   }
+
+  depends_on = [aws_iam_role.prometheus]
 } 
