@@ -20,6 +20,19 @@ prometheus:
     annotations:
       eks.amazonaws.com/role-arn: "arn:aws:iam::240195868935:role/prometheus"
   prometheusSpec:
+    serviceMonitorSelector:
+      matchLabels:
+        prometheus: main
+    serviceMonitorNamespaceSelector:
+      matchLabels:
+        monitoring: prometheus
+    podMonitorSelector:
+      matchLabels:
+        prometheus: main
+    podMonitorNamespaceSelector:
+      matchLabels:
+        monitoring: prometheus
+
     storageSpec: 
       volumeClaimTemplate:
         spec:

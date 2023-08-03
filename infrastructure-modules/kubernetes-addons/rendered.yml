@@ -582,14 +582,20 @@ spec:
   serviceAccountName: 47.1.0-kube-prometheus-sta-prometheus
   serviceMonitorSelector:
     matchLabels:
-      release: "47.1.0"
+      prometheus: main
 
-  serviceMonitorNamespaceSelector: {}
+  serviceMonitorNamespaceSelector:
+    matchLabels:
+      monitoring: prometheus
+
   podMonitorSelector:
     matchLabels:
-      release: "47.1.0"
+      prometheus: main
 
-  podMonitorNamespaceSelector: {}
+  podMonitorNamespaceSelector:
+    matchLabels:
+      monitoring: prometheus
+
   probeSelector:
     matchLabels:
       release: "47.1.0"

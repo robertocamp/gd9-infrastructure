@@ -19,8 +19,18 @@
 - By utilizing IRSA, you can assign IAM roles directly to Kubernetes service accounts, allowing you to manage permissions and access control at a more granular level within your EKS cluster
 - This feature enables you to leverage the existing IAM role-based access control model in AWS and extend it to the Kubernetes environment
 - When you associate an IAM role with a service account, you can specify the permissions that the service account has within your cluster
-
-
+- the monitoring namespace:
+```
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: "2023-07-17T00:52:01Z"
+  labels:
+    kubernetes.io/metadata.name: monitoring
+    name: monitoring
+  name: monitoring
+```
+- the ``
 ## storage design
 - Prometheus typically consumes local storage in the AWS EKS cluster to store its time-series data and other metrics
 - By default, when you deploy the kube-prometheus-stack using Helm, it sets up Prometheus to use an emptyDir volume
@@ -67,10 +77,24 @@
 
 
 ## kube stack deployment
+### todo:  add creation of monitoring namespace to the EKS cluster creation
+- `kubectl label namespace monitoring monitoring=prometheus`
+I have some Terraform code that originally created the AWS EKS cluster.
+
+```
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    monitoring: prometheus
+```
+### current steps
 - add blueprints tf file: 2-kube-prom-stack.tf
 - add `values.yml` to the same directory where the `2-kube-prom-stack.tf` is
 - Helm template: 
-  + `cd gd9-infrastructure/infrastructure-modules`
+  + `cd infrastructure-modules/kubernetes-addons`
   + `helm template "47.1.0" prometheus-community/kube-prometheus-stack --values values.yml > rendered.yml`
 - **deploy via Terragrunt**
   + `cd infrastructure-live-v4`
@@ -83,8 +107,53 @@
 - `aws iam list-roles | jq -r '.Roles[] | select(.RoleName | test("prometheus"))'`
 - `k get svc -n monitoring`
   + expected output: `prometheus-operated                ClusterIP   None             <none>        9090/TCP   64m`
-- `k port-forward svc/prometheus-operated 9090 -n monitoring`
+- **activate prometheus UI:** `k port-forward svc/prometheus-operated 9090 -n monitoring`
+  + connect to localhost:9090 in browser
+  + you should get the app page
+  + look for connection logs in the terminal
 - check Status|Configuration
+
+## application testing
+1. `mkdir app` 
+2. `cd app`
+3. `go mod init github.com/robertocamp/gd9-infrastructure/app`
+4. write app code
+5. `go mod tidy`
+6. local smoke test: `go run main.go`
+7. ps aux | grep "main.go"
+8. kill -9 {PID}
+9. build docker image:
+  + start Docker on mac
+  + write Docker file
+  + `docker build -t example-go-app .`
+  + `docker image ls`
+10. `run image locally: docker run --publish 8080:8080 myapp`
+11. login to ECR: `aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 240195868935.dkr.ecr.us-east-2.amazonaws.com`
+12. list your image repos: `aws ecr describe-repositories --region us-east-2`
+
+12. create your image repo: `aws ecr create-repository --repository-name myapp --region us-east-2`
+13. `docker push 240195868935.dkr.ecr.us-east-2.amazonaws.com/myapp:v0.1`
+14. verify image in ECR: `aws ecr describe-repositories --region us-east-2`
+14. create deployment files in `app/deploy`
+  + namespace has a metadata label for `monitoring: prometheus`
+  + image in deployment file should match ECR (**image and image tag**): `image: 240195868935.dkr.ecr.us-east-2.amazonaws.com/myapp:v0.1`
+15. deployment:
+```
+❯ k apply -f deploy
+namespace/staging created
+deployment.apps/myapp created
+service/myapp created
+podmonitor.monitoring.coreos.com/myapp created
+service/myapp-prom created
+servicemonitor.monitoring.coreos.com/myapp created
+```
+16. checkouts:
+  + check pod: `k get pods -n staging`
+  + check svc: `k get svc -n staging`
+  + check pod monitor: `k get PodMonitor -n staging`
+  + check svc monitor: `k get ServiceMonitor -n staging`
+
+
 ## links
 - Anton Putra operator: https://github.com/antonputra/tutorials/tree/main/lessons/154
 - https://aws-ia.github.io/terraform-aws-eks-blueprints/v4.20.0/add-ons/kube-prometheus-stack/
