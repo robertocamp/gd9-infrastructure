@@ -1,0 +1,32 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+  namespace: staging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: myapp
+          image: 240195868935.dkr.ecr.us-east-2.amazonaws.com/myapp:v0.1
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: http-metrics
+              containerPort: 8081
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 200m
+            limits:
+              memory: 256Mi
+              cpu: 200m

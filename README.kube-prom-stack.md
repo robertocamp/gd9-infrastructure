@@ -1,14 +1,17 @@
 ## configuration sections of source code values.yaml
 - https://github.com/prometheus-community/helm-charts/blob/main/charts/kube-prometheus-stack/values.yaml
+- grafana: 856
 - prometheus-operator: 1964
 - prometheus: 2401
 - alert-manager: 212
 - nodeExporter: 1882
 - kubeStateMetrics: 1808 
+- 
 
 ## helm templates
 - `helm repo list`
 - `helm repo add prometheus-community https://prometheus-community.github.io/helm-charts`
+- `cd infrastructure-modules/kubernetes-addons`
 - `helm template "47.1.0" prometheus-community/kube-prometheus-stack --values values.yml > rendered.yml`
 
 ## stack design
@@ -18,8 +21,18 @@
 - By utilizing IRSA, you can assign IAM roles directly to Kubernetes service accounts, allowing you to manage permissions and access control at a more granular level within your EKS cluster
 - This feature enables you to leverage the existing IAM role-based access control model in AWS and extend it to the Kubernetes environment
 - When you associate an IAM role with a service account, you can specify the permissions that the service account has within your cluster
-
-
+- the monitoring namespace:
+```
+apiVersion: v1
+kind: Namespace
+metadata:
+  creationTimestamp: "2023-07-17T00:52:01Z"
+  labels:
+    kubernetes.io/metadata.name: monitoring
+    name: monitoring
+  name: monitoring
+```
+- the ``
 ## storage design
 - Prometheus typically consumes local storage in the AWS EKS cluster to store its time-series data and other metrics
 - By default, when you deploy the kube-prometheus-stack using Helm, it sets up Prometheus to use an emptyDir volume
@@ -27,7 +40,7 @@
 - However, this means that if the Prometheus pod restarts or gets rescheduled, all the data stored in the emptyDir volume will be lost
 - To ensure data persistence and avoid data loss in case of pod restarts or rescheduling, it's recommended to configure Prometheus to use Persistent Volume Claims (PVCs) to store its data on a more durable storage solution
 - PVCs allow you to request and use storage volumes that exist beyond the lifecycle of the pod
-- in order to construct the storage design we took some of Anton Putra's code (https://github.com/antonputra/tutorials/tree/main/lessons/154) and crafted the `2-csi-driver-addon.tf` file that handles both PVC creation and IAM for 
+- in order to construct the storage design we took some of Anton Putra's code (https://github.com/antonputra/tutorials/tree/main/lessons/154) and crafted the `kubernetes-addons/2-csi-driver-addon.tf` file that handles both PVC creation and IAM for storage
 
 
 ## IAM, service accounts and IRSA
@@ -47,36 +60,144 @@
 
 ### IRSA
 ### integration
-- In summary, the kube-prometheus-stack-operator service account is associated with the kube-prometheus-stack-operator cluster role through the kube-prometheus-stack-operator cluster role binding
+- In summary, the `kube-prometheus-stack-operator` service account is associated with the `kube-prometheus-stack-operator` cluster role through the `kube-prometheus-stack-operator` cluster role binding
 - This setup allows the kube-prometheus-stack operator to act with the permissions defined in the cluster role (kube-prometheus-stack-operator) when managing and deploying resources within the cluster.
 - The operator needs these permissions to create, update, and delete various resources like CustomResourceDefinitions (CRDs), Deployments, StatefulSets, etc., to set up and maintain the components of the kube-prometheus-stack (Prometheus, Grafana, Alertmanager, etc.) and ensure their proper functioning
 
 ### Prometheus Operator
-- service account: kube-prometheus-stack-operator
-- clusterRole: kube-prometheus-stack-operator
-- clusterRoleBinding: kube-prometheus-stack-operator
+- service account: `kube-prometheus-stack-operator`
+- clusterRole: `kube-prometheus-stack-operator`
+- clusterRoleBinding: `kube-prometheus-stack-operator`
 ### Prometheus
-- service-account: kube-prometheus-stack-prometheus
-- clusterRole: kube-prometheus-stack-prometheus
-- clusterRoleBinding: kube-prometheus-stack-prometheus
-- IRSA: 
+- service-account: `kube-prometheus-stack-prometheus`
+- clusterRole: `kube-prometheus-stack-prometheus`
+- clusterRoleBinding: `kube-prometheus-stack-prometheus`
+- **IRSA:** 
+  + an AWS IAM role named "prometheus" should be created
+  + add the TF code to create the prometheus role into the `3-kube-prom-stack.tf` file
+
+
+
+
+## prometheus operator
+- prometheus operator can help you create and discover targets in Kubernetes
+- when you create a service monitor or pod monitor, Prometheus Operator will automatically convert it to Prometheus metrics
+
+## namespace
+- all stack components should be deployed into the `monitoring` namespace
+### todo:  add creation of monitoring namespace to the EKS cluster creation
+- `kubectl label namespace monitoring monitoring=prometheus`
+
+```
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    monitoring: prometheus
+```
+
 ## kube stack deployment
+### current steps
 - add blueprints tf file: 2-kube-prom-stack.tf
 - add `values.yml` to the same directory where the `2-kube-prom-stack.tf` is
 - Helm template: 
-  + `cd gd9-infrastructure/infrastructure-modules`
+  + `cd infrastructure-modules/kubernetes-addons`
   + `helm template "47.1.0" prometheus-community/kube-prometheus-stack --values values.yml > rendered.yml`
 - **deploy via Terragrunt**
   + `cd infrastructure-live-v4`
   + `terragrunt run-all apply`
-
-## node exporter
-- in order for Prometheus to work with node-exporter, we must integrate IRSA configuation so that the Prometheus service account can access AWS EC2 API
+  
 ## checkout
+- `aws eks describe-cluster --name dev-gd9 --region us-east-2 --query 'cluster.createdAt'`
+- `aws iam list-roles | jq -r '.Roles[] | select(.RoleName | test("prometheus"))'`
 - `k get svc -n monitoring`
   + expected output: `prometheus-operated                ClusterIP   None             <none>        9090/TCP   64m`
-- `k port-forward svc/prometheus-operated 9090 -n monitoring`
+- **activate prometheus UI:** `k port-forward svc/prometheus-operated 9090 -n monitoring`
+  + connect to localhost:9090 in browser
+  + you should get the app page
+  + look for connection logs in the terminal
 - check Status|Configuration
+
+## application testing
+1. `mkdir app` 
+2. `cd app`
+3. `go mod init github.com/robertocamp/gd9-infrastructure/app`
+4. write app code
+5. `go mod tidy`
+6. local smoke test: `go run main.go`
+7. ps aux | grep "main.go"
+8. kill -9 {PID}
+9. build docker image:
+  + start Docker on mac
+  + write Docker file
+  + `docker build -t example-go-app .`
+  + `docker image ls`
+10. `run image locally: docker run --publish 8080:8080 myapp`
+11. login to ECR: `aws ecr get-login-password --region us-east-2 | docker login --username AWS --password-stdin 240195868935.dkr.ecr.us-east-2.amazonaws.com`
+12. list your image repos: `aws ecr describe-repositories --region us-east-2`
+
+12. create your image repo: `aws ecr create-repository --repository-name myapp --region us-east-2`
+13. `docker push 240195868935.dkr.ecr.us-east-2.amazonaws.com/myapp:v0.1`
+14. verify image in ECR: `aws ecr describe-repositories --region us-east-2`
+14. create deployment files in `app/deploy`
+  + namespace has a metadata label for `monitoring: prometheus`
+  + image in deployment file should match ECR (**image and image tag**): `image: 240195868935.dkr.ecr.us-east-2.amazonaws.com/myapp:v0.1`
+15. deployment:
+```
+❯ k apply -f deploy
+namespace/staging created
+deployment.apps/myapp created
+service/myapp created
+podmonitor.monitoring.coreos.com/myapp created
+service/myapp-prom created
+servicemonitor.monitoring.coreos.com/myapp created
+```
+16. checkouts:
+  + check pod: `k get pods -n staging`
+  + check svc: `k get svc -n staging`
+  + check pod monitor: `k get PodMonitor -n staging`
+  + check svc monitor: `k get ServiceMonitor -n staging`
+
+17. open the Prometheus UI: `k port-forward svc/prometheus-operated 9090 -n monitoring`
+18. you should see the podMonitor and serviceMonitor targets in the UI
+19. check some metrics: put "tester" in the metrics search window --you should see the discovered metrics in the drop-down menu
+  + choose "tester_duration_seconds" , `eg tester_duration_seconds{quantile="0.99"}`
+  + then try `tester_duration_seconds_count` (a count metric only goes up --it's usually combined with a rate function)
+20. endponts
+```
+❯ k describe endpoints myapp-prom  -n staging
+Name:         myapp-prom
+Namespace:    staging
+Labels:       app=myapp-monitoring
+Annotations:  endpoints.kubernetes.io/last-change-trigger-time: 2023-08-03T07:21:45Z
+Subsets:
+  Addresses:          10.0.53.241
+  NotReadyAddresses:  <none>
+  Ports:
+    Name          Port  Protocol
+    ----          ----  --------
+    http-metrics  8081  TCP
+
+Events:  <none>
+```
+### node exporter
+- in order for Prometheus to work with node-exporter, we must integrate IRSA configuation so that the Prometheus service account can access AWS EC2 API
+### Grafana
+- enable grafana defaults in values.yml
+- run helm template command
+- look at rendered.yml
+- apply to cluster if satisfied with configuration
+#### grafana checkout
+- `k get pods -n monitoring`
+- `k get svc -n monitoring`
+- `k port-forward svc/kube-prometheus-stack-grafana 3000:80 -n monitoring`
+-  The password is auto-generated and stored in a Kubernetes secret:
+-  `k get secrets -n monitoring`
+  + `kubectl get secret --namespace monitoring kube-prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo`
+
+
 ## links
 - Anton Putra operator: https://github.com/antonputra/tutorials/tree/main/lessons/154
 - https://aws-ia.github.io/terraform-aws-eks-blueprints/v4.20.0/add-ons/kube-prometheus-stack/
