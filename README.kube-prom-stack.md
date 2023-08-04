@@ -1,10 +1,12 @@
 ## configuration sections of source code values.yaml
 - https://github.com/prometheus-community/helm-charts/blob/main/charts/kube-prometheus-stack/values.yaml
+- grafana: 856
 - prometheus-operator: 1964
 - prometheus: 2401
 - alert-manager: 212
 - nodeExporter: 1882
 - kubeStateMetrics: 1808 
+- 
 
 ## helm templates
 - `helm repo list`
@@ -76,10 +78,15 @@ metadata:
 
 
 
-## kube stack deployment
+
+## prometheus operator
+- prometheus operator can help you create and discover targets in Kubernetes
+- when you create a service monitor or pod monitor, Prometheus Operator will automatically convert it to Prometheus metrics
+
+## namespace
+- all stack components should be deployed into the `monitoring` namespace
 ### todo:  add creation of monitoring namespace to the EKS cluster creation
 - `kubectl label namespace monitoring monitoring=prometheus`
-I have some Terraform code that originally created the AWS EKS cluster.
 
 ```
 ---
@@ -90,6 +97,8 @@ metadata:
   labels:
     monitoring: prometheus
 ```
+
+## kube stack deployment
 ### current steps
 - add blueprints tf file: 2-kube-prom-stack.tf
 - add `values.yml` to the same directory where the `2-kube-prom-stack.tf` is
@@ -99,9 +108,7 @@ metadata:
 - **deploy via Terragrunt**
   + `cd infrastructure-live-v4`
   + `terragrunt run-all apply`
-
-## node exporter
-- in order for Prometheus to work with node-exporter, we must integrate IRSA configuation so that the Prometheus service account can access AWS EC2 API
+  
 ## checkout
 - `aws eks describe-cluster --name dev-gd9 --region us-east-2 --query 'cluster.createdAt'`
 - `aws iam list-roles | jq -r '.Roles[] | select(.RoleName | test("prometheus"))'`
@@ -152,6 +159,43 @@ servicemonitor.monitoring.coreos.com/myapp created
   + check svc: `k get svc -n staging`
   + check pod monitor: `k get PodMonitor -n staging`
   + check svc monitor: `k get ServiceMonitor -n staging`
+
+17. open the Prometheus UI: `k port-forward svc/prometheus-operated 9090 -n monitoring`
+18. you should see the podMonitor and serviceMonitor targets in the UI
+19. check some metrics: put "tester" in the metrics search window --you should see the discovered metrics in the drop-down menu
+  + choose "tester_duration_seconds" , `eg tester_duration_seconds{quantile="0.99"}`
+  + then try `tester_duration_seconds_count` (a count metric only goes up --it's usually combined with a rate function)
+20. endponts
+```
+❯ k describe endpoints myapp-prom  -n staging
+Name:         myapp-prom
+Namespace:    staging
+Labels:       app=myapp-monitoring
+Annotations:  endpoints.kubernetes.io/last-change-trigger-time: 2023-08-03T07:21:45Z
+Subsets:
+  Addresses:          10.0.53.241
+  NotReadyAddresses:  <none>
+  Ports:
+    Name          Port  Protocol
+    ----          ----  --------
+    http-metrics  8081  TCP
+
+Events:  <none>
+```
+### node exporter
+- in order for Prometheus to work with node-exporter, we must integrate IRSA configuation so that the Prometheus service account can access AWS EC2 API
+### Grafana
+- enable grafana defaults in values.yml
+- run helm template command
+- look at rendered.yml
+- apply to cluster if satisfied with configuration
+#### grafana checkout
+- `k get pods -n monitoring`
+- `k get svc -n monitoring`
+- `k port-forward svc/kube-prometheus-stack-grafana 3000:80 -n monitoring`
+-  The password is auto-generated and stored in a Kubernetes secret:
+-  `k get secrets -n monitoring`
+  + `kubectl get secret --namespace monitoring kube-prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo`
 
 
 ## links

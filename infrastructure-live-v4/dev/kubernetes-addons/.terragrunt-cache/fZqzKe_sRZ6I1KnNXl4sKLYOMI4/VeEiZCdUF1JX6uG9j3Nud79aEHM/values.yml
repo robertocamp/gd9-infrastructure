@@ -46,4 +46,5 @@ prometheus:
 
 
 grafana:
-  enabled: false
+  enabled: true
+  namespaceOverride: "monitoring"
