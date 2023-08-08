@@ -9,10 +9,29 @@ alertmanager:
   enabled: false
 
 nodeExporter:
-  enabled: false
+  enabled: true
 
-kubeStateMetrics:
-  enabled: false
+prometheus-node-exporter:
+  namespaceOverride: "monitoring"
+  podLabels:
+    jobLabel: node-exporter
+  releaseLabel: true
+  extraArgs:
+    - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)
+    - --collector.filesystem.fs-types-exclude=^(autofs|binfmt_misc|bpf|cgroup2?|configfs|debugfs|devpts|devtmpfs|fusectl|hugetlbfs|iso9660|mqueue|nsfs|overlay|proc|procfs|pstore|rpc_pipefs|securityfs|selinuxfs|squashfs|sysfs|tracefs)$
+  service:
+    portName: http-metrics
+
+  prometheus:
+    monitor:
+      enabled: true
+      jobLabel: jobLabel
+      additionalLabels:
+        prometheus: main
+      
+  rbac:
+    pspEnabled: false
+
 
 prometheus:
   enabled: true
@@ -32,7 +51,6 @@ prometheus:
     podMonitorNamespaceSelector:
       matchLabels:
         monitoring: prometheus
-
     storageSpec: 
       volumeClaimTemplate:
         spec:
@@ -43,8 +61,16 @@ prometheus:
               storage: 20Gi
         selector: {}
 
-
-
 grafana:
   enabled: true
   namespaceOverride: "monitoring"
+
+kubeStateMetrics:
+  enabled: true
+kube-state-metrics:
+  namespaceOverride: "monitoring"
+  prometheus:
+    monitor:
+      enabled: true
+      additionalLabels:
+        prometheus: main

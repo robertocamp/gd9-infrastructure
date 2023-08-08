@@ -32,7 +32,15 @@ metadata:
     name: monitoring
   name: monitoring
 ```
-- the ``
+### namespaces , labels and Prometheus
+- In this design, the label `monitoring: prometheus` on the namespace plays an important role in how the Prometheus Operator selects which namespaces to monitor
+- In values.yml, we have defined *selectors* for both `serviceMonitorNamespaceSelector` and `podMonitorNamespaceSelector` that look for the `monitoring: prometheus` label on namespaces
+- This means the Prometheus operator will only select `ServiceMonitors` and `PodMonitors` from namespaces that have the label monitoring:
+- Services and Pods in namespaces which do not have the `monitoring: prometheus` label, won't be monitored.
+- if namespaces were not deployed with this label, the label can be added:
+  + `kubectl label namespace kube-system monitoring=prometheus`
+
+  
 ## storage design
 - Prometheus typically consumes local storage in the AWS EKS cluster to store its time-series data and other metrics
 - By default, when you deploy the kube-prometheus-stack using Helm, it sets up Prometheus to use an emptyDir volume
@@ -59,6 +67,8 @@ metadata:
 - It grants the permissions defined in the cluster role to the service account, enabling the service account to perform the allowed actions on the specified resources within the cluster
 
 ### IRSA
+#### what is "IRSA"
+- IRSA (IAM roles for Service Accounts) is a mechanism for associating an IAM role with a specific Kubernetes Service Account, so that pods running under that service account can make AWS API calls with the permissions granted by the IAM role.
 ### integration
 - In summary, the `kube-prometheus-stack-operator` service account is associated with the `kube-prometheus-stack-operator` cluster role through the `kube-prometheus-stack-operator` cluster role binding
 - This setup allows the kube-prometheus-stack operator to act with the permissions defined in the cluster role (kube-prometheus-stack-operator) when managing and deploying resources within the cluster.
@@ -72,11 +82,55 @@ metadata:
 - service-account: `kube-prometheus-stack-prometheus`
 - clusterRole: `kube-prometheus-stack-prometheus`
 - clusterRoleBinding: `kube-prometheus-stack-prometheus`
-- **IRSA:** 
-  + an AWS IAM role named "prometheus" should be created
-  + add the TF code to create the prometheus role into the `3-kube-prom-stack.tf` file
+#### IRSA
+- an AWS IAM role named "prometheus" should be created
+- add the TF code to create the prometheus role into the `3-kube-prom-stack.tf` file
+- in values.yml, **add the IRSA annotation to the service account:**
 
+```
+  prometheus:
+  enabled: true
+  serviceAccount:
+    annotations:
+      eks.amazonaws.com/role-arn: "arn:aws:iam::240195868935:role/prometheus"
+```
 
+- trust relationship for prometheus role:
+```
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::240195868935:oidc-provider/oidc.eks.us-east-2.amazonaws.com/id/967879CF416BB62A1855CB7E6F4EA724"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {
+                "StringEquals": {
+                    "oidc.eks.us-east-2.amazonaws.com/id/967879CF416BB62A1855CB7E6F4EA724:sub": "system:serviceaccount:monitoring:prometheus"
+                }
+            }
+        }
+    ]
+}
+```
+- the prometheus IAM role is set up for use with IAM Roles for Service Accounts (IRSA). 
+- This feature allows Kubernetes service accounts in your EKS cluster to assume AWS IAM roles. 
+- This way, *you can granularly control AWS permissions for pods, independent of the node's IAM role*
+
+#####  trust relationship breakdown
+- **Principal** indicates which identities are trusted to assume this role. In this case, the identity is the OIDC provider associated with your EKS cluster.
+- **Action**  is *sts:AssumeRoleWithWebIdentity*, which means the role trusts users authenticated through a web identity provider (in this case, OIDC for EKS).
+- **Condition** specifies that only the prometheus service account within the monitoring namespace of your EKS cluster can assume this IAM role.
+- `eks.amazonaws.com/role-arn: arn:aws:iam::240195868935:role/prometheus`
+  + This annotation ties the service account to the IAM Role
+  + When pods use this SA, they can assume this IAM Role to access AWS services.
+##### EKS node IAM role vis-a-vis prometheus role
+- The EKS nodes are all associated with the IAM instance profile `eks-e6c4b074-9f07-a7fc-a4b6-8b5afb7ecf9f`
+-  This IAM instance profile is linked to an IAM role, which is what provides permissions. 
+- The name of the Prometheus IAM role isn't evident in the IAM role associated with these EC2 instances. 
+- Thus, it's safe to say that the prometheus role is not directly attached to the EKS nodes.
 
 
 ## prometheus operator
@@ -183,7 +237,20 @@ Subsets:
 Events:  <none>
 ```
 ### node exporter
+- The Node Exporter is a component of the Prometheus system that exposes hardware and OS metrics, such as disk I/O statistics, CPU load, memory, etc
 - in order for Prometheus to work with node-exporter, we must integrate IRSA configuation so that the Prometheus service account can access AWS EC2 API
+- The Prometheus Node Exporter is designed to run as a DaemonSet in Kubernetes, which means that it deploys a pod on every node in your cluster
+- the Node Exporter component of the kube-prometheus-stack does not typically require an IAM Role for Service Account (IRSA).
+- The Node Exporter works by exposing metrics from the underlying host, such as CPU usage, disk IO, network statistics, and so forth. 
+- It obtains these metrics directly from the Linux kernel (from files in directories like /proc and /sys) rather than by making API calls to external services, so it does not need AWS IAM credentials
+#### node exporter checkout
+- *node exporter will not show up in `get pods`:*  `kubectl -n monitoring get ds`
+  + The output will show you the number of desired pods (which should be equal to the number of nodes) and the current status of the pods.
+- `kubectl -n monitoring get pods -l jobLabel=node-exporter`
+- `kubectl -n monitoring logs -l jobLabel=node-exporter`
+  + This command shows the logs of the pods, which can be helpful for troubleshooting if anything goes wrong.
+- **check Prometheus targets** : 
+
 ### Grafana
 - enable grafana defaults in values.yml
 - run helm template command
@@ -193,13 +260,36 @@ Events:  <none>
 - `k get pods -n monitoring`
 - `k get svc -n monitoring`
 - `k port-forward svc/kube-prometheus-stack-grafana 3000:80 -n monitoring`
+-  default grafana login: admin
 -  The password is auto-generated and stored in a Kubernetes secret:
 -  `k get secrets -n monitoring`
   + `kubectl get secret --namespace monitoring kube-prometheus-stack-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo`
 
+## kube-state-metrics
+- simple service that listens to the Kubernetes API server and generates metrics about the state of various objects inside the cluster, such as deployments, nodes, pods, configmaps, services, and more
+- It's different from other metrics because instead of measuring system metrics like CPU, memory, disk usage, I/O, etc., it focuses on cluster state and object statuses
+- For instance, kube-state-metrics might expose metrics like:
+  + Number of replicas vs. desired replicas for a deployment
+  + The number of currently running pods vs. desired for a replicaset
+  + The last time a node was ready
+  + The number of endpoints attached to a service
+  + The state of a persistent volume (bound, unbound, etc.)
+- These metrics are usually prefixed with `kube_` when you view them in Prometheus
 
+### validation
+- `kubectl get deployments -n monitoring | grep kube-state-metrics`
+- `kubectl get servicemonitors.monitoring.coreos.com -n monitoring | grep kube-state-metrics`
+- `kubectl port-forward -n monitoring svc/[kube-state-metrics-service-name] 8080:8080`
+- `curl localhost:8080/metrics`
+
+## port-forwarding
+- `k port-forward svc/prometheus-operated 9090 -n monitoring`
+- `k port-forward svc/kube-prometheus-stack-grafana 3000:80 -n monitoring`
+- `ps -ef|grep port-forward`
+- `kill -9 {PID}`
 ## links
 - Anton Putra operator: https://github.com/antonputra/tutorials/tree/main/lessons/154
+- https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
 - https://aws-ia.github.io/terraform-aws-eks-blueprints/v4.20.0/add-ons/kube-prometheus-stack/
 - https://github.com/aws-ia/terraform-aws-eks-blueprints-addons
 - https://github.com/prometheus-operator/prometheus-operator/blob/main/Documentation/api.md#prometheusspec

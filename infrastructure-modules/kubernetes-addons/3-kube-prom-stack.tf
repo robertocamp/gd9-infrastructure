@@ -11,7 +11,7 @@ data "aws_iam_policy_document" "prometheus" {
     condition {
       test     = "StringEquals"
       variable = "${replace(data.aws_iam_openid_connect_provider.this.url, "https://", "")}:sub"
-      values   = ["system:serviceaccount:monitoring:prometheus"]
+      values   = ["system:serviceaccount:monitoring:kube-prometheus-stack-prometheus"]
     }
 
     principals {
