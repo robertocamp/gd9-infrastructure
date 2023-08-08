@@ -6,7 +6,13 @@
 - alert-manager: 212
 - nodeExporter: 1882
 - kubeStateMetrics: 1808 
-- 
+
+
+## prometheus operator
+- the Prometheus Operator uses custom resources to simplify the deployment of and configuration of Prometheus, AlertManager and related monitoring components
+- prometheus operator can help you create and discover targets in Kubernetes
+- when you create a service monitor or pod monitor, Prometheus Operator will automatically convert it to Prometheus metrics
+
 
 ## helm templates
 - `helm repo list`
@@ -32,13 +38,28 @@ metadata:
     name: monitoring
   name: monitoring
 ```
-### namespaces , labels and Prometheus
+### namespaces labels and serviceMonitors
 - In this design, the label `monitoring: prometheus` on the namespace plays an important role in how the Prometheus Operator selects which namespaces to monitor
 - In values.yml, we have defined *selectors* for both `serviceMonitorNamespaceSelector` and `podMonitorNamespaceSelector` that look for the `monitoring: prometheus` label on namespaces
 - This means the Prometheus operator will only select `ServiceMonitors` and `PodMonitors` from namespaces that have the label monitoring:
 - Services and Pods in namespaces which do not have the `monitoring: prometheus` label, won't be monitored.
 - if namespaces were not deployed with this label, the label can be added:
   + `kubectl label namespace kube-system monitoring=prometheus`
+  + **in future EKS deployments, add this label to the  namespace when the cluster is created**
+- **once the namesapce is properly labeled, the individual serviceMonitors will also need labels**
+  + in this design, the individual serviceMonitors must have the label `prometheus: main` in order to be picked up by Prometheus
+#### serviceMonitors
+- pods can be instrumented to expose prometheus metrics, for example a */metrics* endpoint, per pod
+- a kubernetes service can then configured to expose traffic to our pods
+- to get Prometheus to *scrape* the service, we deploy a serviceMonitor
+- Prometheus uses a `selector` to discover the serviceMonitor
+- the serviceMonitor, in turn, uses a `selector` to discover the application's Kubernetes service
+- when these components are all properly wired together, the targets appear in the Prometheus dashboard
+- if you are using `label selectors` , you need to be sure the labels exist on the serviceMonitors
+- if you are telling Prometheus to select serviceMonitors with a specific label, and those serviceMonitors don't have the label, Prometheus will not select them
+- a serviceMonitor needs to select a *Kubernetes service* to scrape
+- the `selector` needs to have the right labels and look in the right namespace
+- if your kubernetes service is missing the labels or is in the wrong namespace the serviceMonitor won't be able to select it
 
   
 ## storage design
@@ -133,9 +154,6 @@ metadata:
 - Thus, it's safe to say that the prometheus role is not directly attached to the EKS nodes.
 
 
-## prometheus operator
-- prometheus operator can help you create and discover targets in Kubernetes
-- when you create a service monitor or pod monitor, Prometheus Operator will automatically convert it to Prometheus metrics
 
 ## namespace
 - all stack components should be deployed into the `monitoring` namespace
@@ -276,6 +294,69 @@ Events:  <none>
   + The state of a persistent volume (bound, unbound, etc.)
 - These metrics are usually prefixed with `kube_` when you view them in Prometheus
 
+
+## coredns 
+- AWS EKS comes with CoreDNS pods running by default to provide DNS services
+- The kube-dns service in the kube-system namespace is the interface to these CoreDNS pods, facilitating DNS queries within the cluster
+- The kube-prometheus-stack Helm chart by default provides monitoring resources for various Kubernetes components, including `coredns`
+  + As part of this, the Helm chart creates the `kube-prometheus-stack-coredns` service in the `kube-system` namespace, which is set up to collect metrics from the `coredns` pods. These metrics are exposed by CoreDNS on **port 9153** by default.
+- The ServiceMonitor for CoreDNS, which comes with the kube-prometheus-stack, is *designed to tell Prometheus where to scrape the metrics from*. 
+  + By default, it targets the kube-prometheus-stack-coredns service:
+```
+  selector:
+    matchLabels:
+      app: kube-prometheus-stack-coredns
+      release: "47.1.0"
+  namespaceSelector:
+    matchNames:
+      - "kube-system"
+
+```
+
+
+- the kube stack will deploy a serviceMonitor for coredns:
+```
+# Source: kube-prometheus-stack/templates/exporters/core-dns/servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: 47.1.0-kube-prometheus-sta-coredns
+  namespace: monitoring
+  labels:
+    app: kube-prometheus-stack-coredns
+    
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/instance: 47.1.0
+    app.kubernetes.io/version: "48.1.1"
+    app.kubernetes.io/part-of: kube-prometheus-stack
+    chart: kube-prometheus-stack-48.1.1
+    release: "47.1.0"
+    heritage: "Helm"
+    project: gd9
+spec:
+  jobLabel: jobLabel
+  
+  selector:
+    matchLabels:
+      app: kube-prometheus-stack-coredns
+      release: "47.1.0"
+  namespaceSelector:
+    matchNames:
+      - "kube-system"
+  endpoints:
+  - port: http-metrics
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+```
+- When you create a Kubernetes cluster, either with EKS or most other Kubernetes distributions, it needs an internal DNS server to handle DNS resolution for service discovery within the cluster
+- *CoreDNS is the default DNS server used by Kubernetes for this purpose*
+- In the case of AWS EKS, when you create a new cluster, EKS sets up CoreDNS by default in the kube-system namespace to handle this internal DNS resolution. 
+- This is a standard part of the EKS cluster setup, and the coredns pods are automatically deployed and managed by EKS to ensure your cluster has internal DNS capabilities from the get-go
+
+- Based on this configuration, the `ServiceMonitor` resources are being selected if they are in namespaces labeled with `monitoring: prometheus` and if the ServiceMonitor itself has the label `prometheus: main`
+- To add a label to the kube-system namespace, you can use the kubectl label command: `kubectl label namespace kube-system monitoring=prometheus`
+- to add the `prometheus: main` label to the serviceMonitor, you must edit the values.yml and re-run Helm
+
+
 ### validation
 - `kubectl get deployments -n monitoring | grep kube-state-metrics`
 - `kubectl get servicemonitors.monitoring.coreos.com -n monitoring | grep kube-state-metrics`
@@ -287,6 +368,8 @@ Events:  <none>
 - `k port-forward svc/kube-prometheus-stack-grafana 3000:80 -n monitoring`
 - `ps -ef|grep port-forward`
 - `kill -9 {PID}`
+
+
 ## links
 - Anton Putra operator: https://github.com/antonputra/tutorials/tree/main/lessons/154
 - https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
