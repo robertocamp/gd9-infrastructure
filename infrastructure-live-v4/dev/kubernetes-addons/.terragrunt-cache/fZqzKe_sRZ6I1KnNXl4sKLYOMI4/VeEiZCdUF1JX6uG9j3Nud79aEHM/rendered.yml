@@ -2255,6 +2255,7 @@ metadata:
   namespace: monitoring
   labels:
     app: kube-prometheus-stack-coredns
+    prometheus: main
     
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/instance: 47.1.0

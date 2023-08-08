@@ -74,3 +74,8 @@ kube-state-metrics:
       enabled: true
       additionalLabels:
         prometheus: main
+
+coreDns: 
+  serviceMonitor:
+    additionalLabels:
+      prometheus: main
