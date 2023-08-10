@@ -1,0 +1,73 @@
+It looks like there were several serviceMonitor resources that got deployed in my EKS cluster:
+
+```
+❯ k get serviceMonitor -n monitoring
+NAME                                             AGE
+kube-prometheus-stack-apiserver                  23d
+kube-prometheus-stack-coredns                    23d
+kube-prometheus-stack-grafana                    5d23h
+kube-prometheus-stack-kube-controller-manager    23d
+kube-prometheus-stack-kube-etcd                  23d
+kube-prometheus-stack-kube-proxy                 23d
+kube-prometheus-stack-kube-scheduler             23d
+kube-prometheus-stack-kube-state-metrics         3d5h
+kube-prometheus-stack-kubelet                    23d
+kube-prometheus-stack-operator                   23d
+kube-prometheus-stack-prometheus                 19d
+kube-prometheus-stack-prometheus-node-exporter   5d3h
+```
+
+In order to comply with my design, I would like each serviceMonitor to have a metadata label `prometheus: main`.  
+Is there a kubectl command  or shell script I can use to determine if the serviceMonitors in the target namespace have this metadata label?
+
+
+The command returns no output, even though I know certain of these serviceMonitors do not have the label.  For example:
+
+```
+❯ k get serviceMonitor kube-prometheus-stack-apiserver -n monitoring -o yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  annotations:
+    meta.helm.sh/release-name: kube-prometheus-stack
+    meta.helm.sh/release-namespace: monitoring
+  creationTimestamp: "2023-07-17T00:52:17Z"
+  generation: 1
+  labels:
+    app: kube-prometheus-stack-apiserver
+    app.kubernetes.io/instance: kube-prometheus-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/part-of: kube-prometheus-stack
+    app.kubernetes.io/version: 45.10.1
+    chart: kube-prometheus-stack-45.10.1
+    heritage: Helm
+    project: gd9
+    release: kube-prometheus-stack
+  name: kube-prometheus-stack-apiserver
+  namespace: monitoring
+  resourceVersion: "22057"
+  uid: 190a61f9-4204-41b4-bb59-0df8d7a85f4a
+spec:
+  endpoints:
+  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    metricRelabelings:
+    - action: drop
+      regex: apiserver_request_duration_seconds_bucket;(0.15|0.2|0.3|0.35|0.4|0.45|0.6|0.7|0.8|0.9|1.25|1.5|1.75|2|3|3.5|4|4.5|6|7|8|9|15|25|40|50)
+      sourceLabels:
+      - __name__
+      - le
+    port: https
+    scheme: https
+    tlsConfig:
+      caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      insecureSkipVerify: false
+      serverName: kubernetes
+  jobLabel: component
+  namespaceSelector:
+    matchNames:
+    - default
+  selector:
+    matchLabels:
+      component: apiserver
+      provider: kubernetes
+```

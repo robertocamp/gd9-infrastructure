@@ -32,6 +32,10 @@ prometheus-node-exporter:
   rbac:
     pspEnabled: false
 
+prometheusOperator:
+  serviceMonitor:
+    additionalLabels:
+      prometheus: main
 
 prometheus:
   enabled: true
@@ -76,6 +80,37 @@ kube-state-metrics:
         prometheus: main
 
 coreDns: 
+  serviceMonitor:
+    additionalLabels:
+      prometheus: main
+
+
+kubeControllerManager:
+  serviceMonitor:
+    additionalLabels:
+      prometheus: main
+
+kubeEtcd:
+  serviceMonitor:
+    additionalLabels:
+      prometheus: main
+
+kubeProxy:
+  serviceMonitor:
+    additionalLabels:
+      prometheus: main
+
+kubeScheduler:
+  serviceMonitor:
+    additionalLabels:
+      prometheus: main
+
+kubelet:
+  serviceMonitor:
+    additionalLabels:
+      prometheus: main
+
+kubeApiServer:
   serviceMonitor:
     additionalLabels:
       prometheus: main

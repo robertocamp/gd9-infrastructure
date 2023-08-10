@@ -362,6 +362,8 @@ spec:
 - `kubectl get servicemonitors.monitoring.coreos.com -n monitoring | grep kube-state-metrics`
 - `kubectl port-forward -n monitoring svc/[kube-state-metrics-service-name] 8080:8080`
 - `curl localhost:8080/metrics`
+- validate serviceMonitor configuration: `kubectl get servicemonitors -n monitoring -o json | jq -r '.items[] | select(.metadata.labels.prometheus != "main") | .metadata.name'`
+
 
 ## port-forwarding
 - `k port-forward svc/prometheus-operated 9090 -n monitoring`

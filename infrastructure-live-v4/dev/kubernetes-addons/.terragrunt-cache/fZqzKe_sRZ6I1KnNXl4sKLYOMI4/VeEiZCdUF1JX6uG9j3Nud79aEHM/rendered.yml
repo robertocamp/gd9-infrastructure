@@ -2287,6 +2287,7 @@ metadata:
   namespace: monitoring
   labels:
     app: kube-prometheus-stack-apiserver
+    prometheus: main
     
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/instance: 47.1.0
@@ -2329,6 +2330,7 @@ metadata:
   namespace: monitoring
   labels:
     app: kube-prometheus-stack-kube-controller-manager
+    prometheus: main
     
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/instance: 47.1.0
@@ -2364,6 +2366,7 @@ metadata:
   namespace: monitoring
   labels:
     app: kube-prometheus-stack-kube-etcd
+    prometheus: main
     
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/instance: 47.1.0
@@ -2395,6 +2398,7 @@ metadata:
   namespace: monitoring
   labels:
     app: kube-prometheus-stack-kube-proxy
+    prometheus: main
     
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/instance: 47.1.0
@@ -2426,6 +2430,7 @@ metadata:
   namespace: monitoring
   labels:
     app: kube-prometheus-stack-kube-scheduler
+    prometheus: main
     
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/instance: 47.1.0
@@ -2460,7 +2465,8 @@ metadata:
   name: 47.1.0-kube-prometheus-sta-kubelet
   namespace: monitoring
   labels:
-    app: kube-prometheus-stack-kubelet    
+    app: kube-prometheus-stack-kubelet
+    prometheus: main    
     app.kubernetes.io/managed-by: Helm
     app.kubernetes.io/instance: 47.1.0
     app.kubernetes.io/version: "48.1.1"
@@ -2562,6 +2568,7 @@ metadata:
     release: "47.1.0"
     heritage: "Helm"
     project: gd9
+    prometheus: main
 spec:
   
   endpoints:
