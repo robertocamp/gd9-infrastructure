@@ -7,12 +7,10 @@
 - nodeExporter: 1882
 - kubeStateMetrics: 1808 
 
-
 ## prometheus operator
 - the Prometheus Operator uses custom resources to simplify the deployment of and configuration of Prometheus, AlertManager and related monitoring components
 - prometheus operator can help you create and discover targets in Kubernetes
 - when you create a service monitor or pod monitor, Prometheus Operator will automatically convert it to Prometheus metrics
-
 
 ## helm templates
 - `helm repo list`
@@ -38,6 +36,7 @@ metadata:
     name: monitoring
   name: monitoring
 ```
+
 ### namespaces labels and serviceMonitors
 - In this design, the label `monitoring: prometheus` on the namespace plays an important role in how the Prometheus Operator selects which namespaces to monitor
 - In values.yml, we have defined *selectors* for both `serviceMonitorNamespaceSelector` and `podMonitorNamespaceSelector` that look for the `monitoring: prometheus` label on namespaces
@@ -48,6 +47,7 @@ metadata:
   + **in future EKS deployments, add this label to the  namespace when the cluster is created**
 - **once the namesapce is properly labeled, the individual serviceMonitors will also need labels**
   + in this design, the individual serviceMonitors must have the label `prometheus: main` in order to be picked up by Prometheus
+
 #### serviceMonitors
 - pods can be instrumented to expose prometheus metrics, for example a */metrics* endpoint, per pod
 - a kubernetes service can then configured to expose traffic to our pods
@@ -69,7 +69,20 @@ metadata:
 - However, this means that if the Prometheus pod restarts or gets rescheduled, all the data stored in the emptyDir volume will be lost
 - To ensure data persistence and avoid data loss in case of pod restarts or rescheduling, it's recommended to configure Prometheus to use Persistent Volume Claims (PVCs) to store its data on a more durable storage solution
 - PVCs allow you to request and use storage volumes that exist beyond the lifecycle of the pod
-- in order to construct the storage design we took some of Anton Putra's code (https://github.com/antonputra/tutorials/tree/main/lessons/154) and crafted the `kubernetes-addons/2-csi-driver-addon.tf` file that handles both PVC creation and IAM for storage
+- in order to construct the storage design we took some of Anton Putra's code (https://github.com/antonputra/tutorials/tree/main/lessons/154) and crafted the `kubernetes-addons/2-csi-driver-addon.tf` file that handles  IAM for storage
+- the PVC gets created in the Helm chart:
+
+```
+    storageSpec: 
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp2
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+        selector: {}
+```
 
 
 ## IAM, service accounts and IRSA
