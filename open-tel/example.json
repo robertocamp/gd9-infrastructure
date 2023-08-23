@@ -1,0 +1,66 @@
+{
+  "replicaCount": 1,
+  "manager": {
+    "resources": {
+      "limits": {
+        "cpu": "100m",
+        "memory": "128Mi"
+      },
+      "requests": {
+        "cpu": "100m",
+        "memory": "64Mi"
+      }
+    },
+    "env": {}
+  },
+  "kubeRBACProxy": {
+    "resources": {
+      "limits": {
+        "cpu": "500m",
+        "memory": "128Mi"
+      },
+      "requests": {
+        "cpu": "5m",
+        "memory": "64Mi"
+      }
+    }
+  },
+  "admissionWebhooks": {
+    "namespaceSelector": {},
+    "objectSelector": {}
+  },
+  "affinity": {},
+  "tolerations": [],
+  "nodeSelector": {},
+  "collector": {
+    "mode": "deployment",
+    "replicas": 1,
+    "resources": {
+      "limits": {
+        "cpu": "256m",
+        "memory": "512Mi"
+      },
+      "requests": {
+        "cpu": "64m",
+        "memory": "128Mi"
+      }
+    },
+    "serviceAccount": {
+      "create": true,
+      "name": "aws-otel-collector",
+      "annotations": {
+        "eks.amazonaws.com/role-arn": "arn:aws:iam::123456789012:role/adot-collector-mock"
+      }
+    },
+    "amp": {
+      "enabled": true,
+      "remoteWriteEndpoint": "https://aps-workspaces.us-west-2-mock.amazonaws.com/workspaces/ws-mock-mock-mock-mock-mock/api/v1/remote_write"
+    },
+    "cloudwatch": {
+      "enabled": true
+    },
+    "xray": {
+      "enabled": true
+    }
+  }
+}
