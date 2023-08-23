@@ -1,0 +1,18 @@
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: simple-otelcol
+  namespace: opentelemetry-operator-system
+spec:
+  config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+    exporters:
+      logging:
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          exporters: [logging]

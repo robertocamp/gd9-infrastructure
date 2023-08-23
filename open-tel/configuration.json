@@ -1,7 +1,3 @@
-
-It seems like the relation between the service account and the json configuration is broken.
-
-Even with no prior IRSA configuration (ie, d did not run `eksctl create iamserviceaccount` ), using this configurationfile does not produce a service account called "adot-collector" in the "opentelemetry-operator-system" namespace 
 {
   "replicaCount": 1,
   "manager": {
@@ -29,9 +25,8 @@ Even with no prior IRSA configuration (ie, d did not run `eksctl create iamservi
     }
   },
   "collector": {
-    "mode": "statefulset",
     "serviceAccount": {
-      "create": true,
+      "create": false,
       "name": "adot-collector"
     },
     "resources": {
