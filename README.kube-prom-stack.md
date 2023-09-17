@@ -279,7 +279,10 @@ Events:  <none>
   + The output will show you the number of desired pods (which should be equal to the number of nodes) and the current status of the pods.
 - `kubectl -n monitoring get pods -l jobLabel=node-exporter`
 - `kubectl -n monitoring logs -l jobLabel=node-exporter`
-  + This command shows the logs of the pods, which can be helpful for troubleshooting if anything goes wrong.
+  + This command shows the logs of the pods, which can be helpful for troubleshooting if anything goes wrong.\
+- `aws ec2 describe-instances --region us-east-2 --query 'Reservations[*].Instances[*].[InstanceId, State.Name]'`
+aws ec2 describe-instances --region us-east-2 --query "Reservations[*].Instances[?Tags[?Value=='node-exporter']].[InstanceId, State.Name]"
+
 - **check Prometheus targets** : 
 
 ### Grafana
@@ -377,6 +380,56 @@ spec:
 - `curl localhost:8080/metrics`
 - validate serviceMonitor configuration: `kubectl get servicemonitors -n monitoring -o json | jq -r '.items[] | select(.metadata.labels.prometheus != "main") | .metadata.name'`
 
+## Probe Custom Resources: BlackBox Exporter
+- The Blackbox Exporter allows for blackbox probing of network endpoints over HTTP, HTTPS, DNS, TCP, and ICMP. 
+- It is mainly used in combination with Prometheus to probe services and endpoints and collect metrics about the probe results, which can then be used for alerting or analysis in Grafana or similar tools.
+### Deployment of Blackbox Exporter:
+  + You can deploy the Blackbox Exporter as a Kubernetes Deployment or DaemonSet, depending on your monitoring requirements
+  + The Blackbox Exporter will expose an HTTP endpoint (usually on port 9115) which Prometheus will scrape
+### Configuring Prometheus to Scrape Blackbox Exporter:
+  + In your Prometheus configuration, add a job for the Blackbox Exporter.
+  + Define the targets (endpoints) you want the Blackbox Exporter to probe
+  + example YML code:
+```
+scrape_configs:
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]  # Look for a HTTP 200 response.
+    static_configs:
+      - targets:
+        - http://my-service-to-probe.internal
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115  # Address of the Blackbox exporter
+
+```
+### Configuring Blackbox Exporter Modules:
+- The Blackbox Exporter uses modules to define how it will probe targets. For example, you can have modules for HTTP checks, HTTPS checks, ICMP pings, etc
+- Modules are defined in the Blackbox Exporter's configuration file
+- An example module for HTTP checks might look like:
+```
+modules:
+  http_2xx:
+    prober: http
+    timeout: 5s
+    http:
+      valid_http_versions: [HTTP/1.1, HTTP/2]
+      valid_status_codes: []  # Defaults to 2xx
+      method: GET
+
+```
+### Alerting
+- Once Prometheus is scraping the Blackbox Exporter, you can define alert rules based on probe results. 
+- For example, you could alert if a service is not returning an HTTP 200 response or if the response time exceeds a certain threshold.
+
+### Blackbox monitoring: Takeaways
+- The Blackbox Exporter is particularly useful in situations where you can't instrument code directly, such as third-party services or blackbox systems where you don't have control over the internals. 
+- It provides an external perspective on service availability and responsiveness.
 
 ## port-forwarding
 - `k port-forward svc/prometheus-operated 9090 -n monitoring`
@@ -384,6 +437,7 @@ spec:
 - `ps -ef|grep port-forward`
 - `kill -9 {PID}`
 
+## service accounts
 
 ## links
 - Anton Putra operator: https://github.com/antonputra/tutorials/tree/main/lessons/154

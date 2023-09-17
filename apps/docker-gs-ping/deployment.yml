@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker-gs-ping-deployment
+  namespace: staging
+  labels:
+    app: docker-gs-ping
+spec:
+  replicas: 2 # You can adjust the number of replicas as needed
+  selector:
+    matchLabels:
+      app: docker-gs-ping
+  template:
+    metadata:
+      labels:
+        app: docker-gs-ping
+    spec:
+      containers:
+      - name: docker-gs-ping-container
+        image: 240195868935.dkr.ecr.us-east-2.amazonaws.com/docker-gs-ping:latest       
+        ports:
+        - containerPort: 3000 # Adjust if your app uses a different port

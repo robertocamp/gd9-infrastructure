@@ -276,3 +276,4 @@ autoscaler      kube-system     1               2023-07-16 09:10:32.131851 -0500
 - anton putra eks: https://github.com/antonputra/tutorials/tree/main/lessons/160
 - https://www.youtube.com/watch?v=yduHaOj3XMg&t=3026s
 - https://github.com/aws-ia/terraform-aws-eks-blueprints-addons/blob/main/docs/addons/kube-prometheus-stack.md
+- markdown links: https://www.digitalocean.com/community/tutorials/markdown-markdown-images

@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uptrace-demo
+  namespace: staging
+spec:
+  selector:
+    matchLabels:
+      app: uptrace-demo
+  template:
+    metadata:
+      labels:
+        app: uptrace-demo
+    spec:
+      containers:
+      - name: uptrace-demo
+        image: 240195868935.dkr.ecr.us-east-2.amazonaws.com/uptrace-demo:v001 # copy image URI from console
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"
+        ports:
+        - containerPort: 3000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: staging
+  name: uptrace-demo
+spec:
+  type: ClusterIP
+  selector:
+    app: uptrace-demo
+  ports:
+  - port: 3000
+    targetPort: 3000
