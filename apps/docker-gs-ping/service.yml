@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: docker-gs-ping-service
+  namespace: staging
+  labels:
+    app: docker-gs-ping
+spec:
+  selector:
+    app: docker-gs-ping
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: LoadBalancer
