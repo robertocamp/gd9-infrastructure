@@ -72,3 +72,17 @@ resource "kubernetes_service_account" "thanos" {
   automount_service_account_token = true
 }
 
+resource "kubernetes_secret" "thanos_object_storage" {
+  metadata {
+    name      = "thanos-objectstorage"
+    namespace = "monitoring"
+  }
+
+  data = {
+    "thanos.yaml" = filebase64("${path.module}/thanos.yaml")
+  }
+
+  type = "Opaque"
+}
+
+
