@@ -1,6 +1,3 @@
-OK, I'm staring to get it...since I have a lot of the ground work at the infrastructure level for this being done in Terraform, and my Terraform now has a proper `kubernetes` provider, can I create the secret by adding some code to my thanos.tf file?
-
-```
 
 
 // IAM Policy for Thanos
@@ -74,4 +71,4 @@ resource "kubernetes_service_account" "thanos" {
   }
   automount_service_account_token = true
 }
-```
+

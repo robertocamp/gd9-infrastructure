@@ -69,7 +69,7 @@ vpc_id = "vpc-0710fdb48095c6dcd"
 
 #### deployment
 - **important**: as of this writing (July 2023) the **EKS cluster must be installed before addons** such as cluster-autoscaler because the addons require the OIDC ARN
-- `cd infrastructure-live-v4/dev`
+- `cd infrastructure-live-v4/`
 - `terragrunt run-all plan`
 - `terragrunt run-all apply`
 ```
