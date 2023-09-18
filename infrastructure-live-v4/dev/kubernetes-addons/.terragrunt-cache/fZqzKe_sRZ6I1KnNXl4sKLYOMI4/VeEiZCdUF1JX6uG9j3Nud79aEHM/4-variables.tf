@@ -23,3 +23,9 @@ variable "openid_provider_arn" {
   description = "IAM Openid Connect Provider ARN"
   type        = string
 }
+
+
+variable "thanos_bucket_arn" {
+  description = "The ARN of the Thanos S3 bucket"
+  type        = string
+}
