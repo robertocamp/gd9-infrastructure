@@ -52,9 +52,9 @@ My favorite search engine is [Duck Duck Go](https://duckduckgo.com).
 5. `kubectl apply -f cloudNativeFullStack.yml`
 
 ## Terraform
-- generate API token with appropriate scopes: dt0c01.3EJOMIARJEUDHNBM2QITREJZ.67GQNPVNU2FAZPT3ZUKRLOF2UCEWYUV4ARZO3RNLL3YILOXLJV6MG35BKRDDYH4I
+- generate API token with appropriate scopes: xxxxxxxxx
 - `export DYNATRACE_ENV_URL="https://nhd70770.live.dynatrace.com"`
-- `export DYNATRACE_API_TOKEN="dt0c01.3EJOMIARJEUDHNBM2QITREJZ.67GQNPVNU2FAZPT3ZUKRLOF2UCEWYUV4ARZO3RNLL3YILOXLJV6MG35BKRDDYH4I"`
+- `export DYNATRACE_API_TOKEN="xxxxxxx"`
 - `cd src`
 - `touch providers.tf`
 - `terraform init`

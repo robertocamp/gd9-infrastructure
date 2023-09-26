@@ -3,19 +3,32 @@ variable "scope" {
   default     = "environment"
 }
 
-variable "observation_period_in_minutes" {
-  description = "The observation period in minutes for anomalies"
-  default     = 6
+variable "container_restarts" {
+  type = object({
+    enabled                      = bool
+    observation_period_in_minutes = number
+    sample_period_in_minutes      = number
+    threshold                     = number
+  })
+  default = {
+    enabled                      = true
+    observation_period_in_minutes = 6
+    sample_period_in_minutes      = 4
+    threshold                     = 2
+  }
 }
 
-variable "sample_period_in_minutes" {
-  description = "The sample period in minutes for anomalies"
-  default     = 4
+variable "deployment_stuck" {
+  type = object({
+    enabled                      = bool
+    observation_period_in_minutes = number
+    sample_period_in_minutes      = number
+  })
+  default = {
+    enabled                      = true
+    observation_period_in_minutes = 5
+    sample_period_in_minutes      = 4
+  }
 }
 
-variable "threshold" {
-  description = "The threshold for anomalies"
-  default     = 2
-}
-
-// Define other variables as needed
+//... similarly, define other variables with default values for each monitor ...
