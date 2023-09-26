@@ -1,0 +1,4 @@
+type: S3
+config:
+  bucket: gd9-thanos
+  endpoint: s3.us-east-2.amazonaws.com

@@ -1,37 +1,42 @@
-Where is this "thanos.yml" file supposed to sit?
+it looks like the TF resource code for the monitors has a predictable pattern:
 
-Here is my file structure for kube-thanos as of now:
+```
+container_restarts {
+    enabled = true
+    configuration {
+      observation_period_in_minutes = 6
+      sample_period_in_minutes      = 4
+      threshold                     = 2
+    }
+  }
+  deployment_stuck {
+    enabled = true
+    configuration {
+      observation_period_in_minutes = 5
+      sample_period_in_minutes      = 4
+    }
+  }
+  not_all_pods_ready {
+    enabled = true
+    configuration {
+      observation_period_in_minutes = 6
+      sample_period_in_minutes      = 4
+    }
+  }
+  ```
 
-❯ pwd
-/Users/robert/Documents/CODE/gd9-infrastructure/kube-thanos
-❯ tree
-.
-├── example.jsonnet
-├── jsonnetfile.json
-├── jsonnetfile.lock.json
-└── vendor
-    ├── github.com
-    │   └── thanos-io
-    │       └── kube-thanos
-    │           └── jsonnet
-    │               └── kube-thanos
-    │                   ├── jsonnetfile.json
-    │                   ├── kube-thanos-bucket-replicate.libsonnet
-    │                   ├── kube-thanos-bucket.libsonnet
-    │                   ├── kube-thanos-compact-default-params.libsonnet
-    │                   ├── kube-thanos-compact-shards.libsonnet
-    │                   ├── kube-thanos-compact.libsonnet
-    │                   ├── kube-thanos-query-frontend.libsonnet
-    │                   ├── kube-thanos-query.libsonnet
-    │                   ├── kube-thanos-receive-default-params.libsonnet
-    │                   ├── kube-thanos-receive-hashrings.libsonnet
-    │                   ├── kube-thanos-receive-ingestor.libsonnet
-    │                   ├── kube-thanos-receive-router.libsonnet
-    │                   ├── kube-thanos-receive.libsonnet
-    │                   ├── kube-thanos-rule.libsonnet
-    │                   ├── kube-thanos-sidecar.libsonnet
-    │                   ├── kube-thanos-store-default-params.libsonnet
-    │                   ├── kube-thanos-store-shards.libsonnet
-    │                   ├── kube-thanos-store.libsonnet
-    │                   └── thanos.libsonnet
-    └── kube-thanos -> github.com/thanos-io/kube-thanos/jsonnet/kube-thanos
+  Would it be possible to somehow variablize each indvidual monitor in a more hollistic fashion?
+
+  For example can 
+  ```
+  container_restarts {
+    enabled = true
+    configuration {
+      observation_period_in_minutes = 6
+      sample_period_in_minutes      = 4
+      threshold                     = 2
+    }
+  }
+  ```
+
+  be variablized as one single variable with various components?  Just looking for some options in addition to what you've provided already.

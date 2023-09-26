@@ -5,7 +5,7 @@ local t = import 'kube-thanos/thanos.libsonnet';
 local commonConfig = {
   config+:: {
     local cfg = self,
-    namespace: 'monitor',
+    namespace: 'monitoring',
     version: 'v0.31.0',
     image: 'quay.io/thanos/thanos:' + cfg.version,
     imagePullPolicy: 'IfNotPresent',
@@ -48,14 +48,28 @@ local r = t.receiveRouter(commonConfig.config {
 local s = t.store(commonConfig.config {
   replicas: 1,
   serviceMonitor: true,
+  // Add/override serviceAccountAnnotations in tq.config
+  serviceAccountAnnotations: {
+    'eks.amazonaws.com/role-arn': 'arn:aws:iam::240195868935:role/thanos',
+    'eks.amazonaws.com/sts-regional-endpoints': 'true',
+  },
+
 });
+
 
 local q = t.query(commonConfig.config {
   replicas: 1,
   replicaLabels: ['prometheus_replica', 'rule_replica'],
   serviceMonitor: true,
   stores: [s.storeEndpoint] + i.storeEndpoints,
+
+  // Add/override serviceAccountAnnotations in tq.config
+  serviceAccountAnnotations: {
+    'eks.amazonaws.com/role-arn': 'arn:aws:iam::240195868935:role/thanos',
+    'eks.amazonaws.com/sts-regional-endpoints': 'true',
+  },
 });
+
 
 { ['thanos-store-' + name]: s[name] for name in std.objectFields(s) } +
 { ['thanos-query-' + name]: q[name] for name in std.objectFields(q) } +

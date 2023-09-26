@@ -60,6 +60,40 @@ metadata:
 - a serviceMonitor needs to select a *Kubernetes service* to scrape
 - the `selector` needs to have the right labels and look in the right namespace
 - if your kubernetes service is missing the labels or is in the wrong namespace the serviceMonitor won't be able to select it
+- **example serviceMonitor YAML**:
+```
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  annotations:
+    meta.helm.sh/release-name: kube-prometheus-stack
+    meta.helm.sh/release-namespace: monitoring
+  creationTimestamp: "2023-08-06T18:17:06Z"
+  generation: 1
+  labels:
+    app.kubernetes.io/component: metrics
+    app.kubernetes.io/instance: kube-prometheus-stack
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kube-state-metrics
+    app.kubernetes.io/part-of: kube-state-metrics
+    app.kubernetes.io/version: 2.8.2
+    helm.sh/chart: kube-state-metrics-5.4.2
+    prometheus: main
+    release: kube-prometheus-stack
+  name: kube-prometheus-stack-kube-state-metrics
+  namespace: monitoring
+  resourceVersion: "6801687"
+  uid: db2e35f9-06bf-4835-b45a-a400000b95f8
+spec:
+  endpoints:
+  - honorLabels: true
+    port: http
+  jobLabel: app.kubernetes.io/name
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: kube-prometheus-stack
+      app.kubernetes.io/name: kube-state-metrics
+```
 
   
 ## storage design
