@@ -1,48 +1,42 @@
+it looks like the TF resource code for the monitors has a predictable pattern:
 
-It seems like the relation between the service account and the json configuration is broken.
-
-Even with no prior IRSA configuration (ie, d did not run `eksctl create iamserviceaccount` ), using this configurationfile does not produce a service account called "adot-collector" in the "opentelemetry-operator-system" namespace 
-{
-  "replicaCount": 1,
-  "manager": {
-    "resources": {
-      "limits": {
-        "cpu": "200m",
-        "memory": "256Mi"
-      },
-      "requests": {
-        "cpu": "100m",
-        "memory": "128Mi"
-      }
-    }
-  },
-  "kubeRBACProxy": {
-    "resources": {
-      "limits": {
-        "cpu": "50m",
-        "memory": "64Mi"
-      },
-      "requests": {
-        "cpu": "10m",
-        "memory": "32Mi"
-      }
-    }
-  },
-  "collector": {
-    "mode": "statefulset",
-    "serviceAccount": {
-      "create": true,
-      "name": "adot-collector"
-    },
-    "resources": {
-      "limits": {
-        "cpu": "1",
-        "memory": "2Gi"
-      },
-      "requests": {
-        "cpu": "500m",
-        "memory": "1Gi"
-      }
-    }
+```
+container_restarts {
+    enabled = true
+    configuration {
+      observation_period_in_minutes = 6
+      sample_period_in_minutes      = 4
+      threshold                     = 2
     }
   }
+  deployment_stuck {
+    enabled = true
+    configuration {
+      observation_period_in_minutes = 5
+      sample_period_in_minutes      = 4
+    }
+  }
+  not_all_pods_ready {
+    enabled = true
+    configuration {
+      observation_period_in_minutes = 6
+      sample_period_in_minutes      = 4
+    }
+  }
+  ```
+
+  Would it be possible to somehow variablize each indvidual monitor in a more hollistic fashion?
+
+  For example can 
+  ```
+  container_restarts {
+    enabled = true
+    configuration {
+      observation_period_in_minutes = 6
+      sample_period_in_minutes      = 4
+      threshold                     = 2
+    }
+  }
+  ```
+
+  be variablized as one single variable with various components?  Just looking for some options in addition to what you've provided already.

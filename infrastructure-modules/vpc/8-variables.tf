@@ -33,3 +33,8 @@ variable "public_subnet_tags" {
   description = "Private subnet tags."
   type        = map(any)
 }
+
+variable "thanos_bucket" {
+  description = "name of thanos bucket"
+  type        = string
+}
