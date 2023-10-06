@@ -38,8 +38,6 @@ My favorite search engine is [Duck Duck Go](https://duckduckgo.com).
   +  curl example to generate tokens
   + `curl -X POST "https://nhd70770.live.dynatrace.com/api/v2/apiTokens" -H "accept: application/json; charset=utf-8" -H "Content-Type: application/json; charset=utf-8" -d "{\"scopes\":[\"activeGateTokenManagement.create\",\"entities.read\",\"settings.read\",\"settings.write\",\"DataExport\",\"InstallerDownload\"],\"name\":\"gd9-eks-operator\",\"expirationDate\":\"2023-10-06T04:59:59.999Z\"}" -H "Authorization: Api-Token XXXXXXXX"`
   + `curl -X POST "https://nhd70770.live.dynatrace.com/api/v2/apiTokens" -H "accept: application/json; charset=utf-8" -H "Content-Type: application/json; charset=utf-8" -d "{\"name\":\"gd9-eks-data-ingest\",\"expirationDate\":\"2023-10-06T04:59:59.999Z\",\"scopes\":[\"events.ingest\",\"logs.ingest\",\"metrics.ingest\"]}" -H "Authorization: Api-Token XXXXXXXX"`
-  gd9-eks-operator:  dt0c01.5WOXUZRRWO4HZJTKRKPT5MVU.EHJ5YQ22KBLFOUGCVT5GYPJKFNLHP3DXTXL3GSYNZGVTSTNH62KTZS4IVPPV5GHY
-  gd9-eks-data-ingest: dt0c01.FS34BV7NJ3YRMS2JBXPACZRP.QKUCRZFOCQOVA7YXIRTS2LGCOCUFCFV3WSC2JNG5Q3JD6EWADTDQFBSM6ROPRNMC
 2. create namespace:
  + `kubectl create namespace dynatrace`
 3. install the operator:

@@ -1,0 +1,36 @@
+I am currently setting up an AWS EKS cluster.
+I have the following demo application to test my cluster configuration:
+
+```
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: default
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.23.4
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              memory: 2Gi
+              cpu: "1"
+            limits:
+              memory: 2Gi
+              cpu: "1"
+```
+
+The memory and cpu resources seem a bit high in this configuration.
+How can I tune those down so that my demo application is lighter and more efficient?
