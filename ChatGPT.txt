@@ -1,42 +1,36 @@
-it looks like the TF resource code for the monitors has a predictable pattern:
+I am currently setting up an AWS EKS cluster.
+I have the following demo application to test my cluster configuration:
 
 ```
-container_restarts {
-    enabled = true
-    configuration {
-      observation_period_in_minutes = 6
-      sample_period_in_minutes      = 4
-      threshold                     = 2
-    }
-  }
-  deployment_stuck {
-    enabled = true
-    configuration {
-      observation_period_in_minutes = 5
-      sample_period_in_minutes      = 4
-    }
-  }
-  not_all_pods_ready {
-    enabled = true
-    configuration {
-      observation_period_in_minutes = 6
-      sample_period_in_minutes      = 4
-    }
-  }
-  ```
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: default
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.23.4
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              memory: 2Gi
+              cpu: "1"
+            limits:
+              memory: 2Gi
+              cpu: "1"
+```
 
-  Would it be possible to somehow variablize each indvidual monitor in a more hollistic fashion?
-
-  For example can 
-  ```
-  container_restarts {
-    enabled = true
-    configuration {
-      observation_period_in_minutes = 6
-      sample_period_in_minutes      = 4
-      threshold                     = 2
-    }
-  }
-  ```
-
-  be variablized as one single variable with various components?  Just looking for some options in addition to what you've provided already.
+The memory and cpu resources seem a bit high in this configuration.
+How can I tune those down so that my demo application is lighter and more efficient?
