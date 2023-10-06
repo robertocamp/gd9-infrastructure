@@ -46,7 +46,7 @@ My favorite search engine is [Duck Duck Go](https://duckduckgo.com).
   + validation: `kubectl -n dynatrace wait pod --for=condition=ready --selector=app.kubernetes.io/name=dynatrace-operator,app.kubernetes.io/component=webhook --timeout=300s`
 4. Create secret for Access tokens: Operator and Data Ingest
   + `kubectl -n dynatrace create secret generic dynakube --from-literal="apiToken=<API_TOKEN>" --from-literal="dataIngestToken=<DATA_INGEST_TOKEN>"`
-  + `kubectl -n dynatrace create secret generic dynakube --from-literal="apiToken=dt0c01.5WOXUZRRWO4HZJTKRKPT5MVU.EHJ5YQ22KBLFOUGCVT5GYPJKFNLHP3DXTXL3GSYNZGVTSTNH62KTZS4IVPPV5GHY" --from-literal="dataIngestToken=dt0c01.FS34BV7NJ3YRMS2JBXPACZRP.QKUCRZFOCQOVA7YXIRTS2LGCOCUFCFV3WSC2JNG5Q3JD6EWADTDQFBSM6ROPRNMC"`
+  + `kubectl -n dynatrace create secret generic dynakube --from-literal="apiToken=xxxxxxxxxxxxxxxxxxxxxxxxx" --from-literal="dataIngestToken=dt0c01.FS34BV7NJ3YRMS2JBXPACZRP.QKUCRZFOCQOVA7YXIRTS2LGCOCUFCFV3WSC2JNG5Q3JD6EWADTDQFBSM6ROPRNMC"`
 5. `kubectl apply -f cloudNativeFullStack.yml`
 
 ## Terraform
